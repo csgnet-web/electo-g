@@ -1,3 +1,4 @@
+import Link from "next/link";
 import SeatCounter from "@/components/SeatCounter";
 import RaceCard from "@/components/RaceCard";
 import AICommentaryFeed from "@/components/AICommentaryFeed";
@@ -37,9 +38,9 @@ export default function Home() {
           <h2 className="text-lg font-black text-white uppercase tracking-wide">
             🔥 Key Races to Watch
           </h2>
-          <a href="/races" className="text-green-400 text-sm hover:text-green-300 transition-colors">
+          <Link href="/races" className="text-green-400 text-sm hover:text-green-300 transition-colors">
             All 435 House + 33 Senate races →
-          </a>
+          </Link>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {keyRaces.map((race) => {

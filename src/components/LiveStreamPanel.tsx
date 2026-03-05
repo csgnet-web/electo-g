@@ -1,16 +1,22 @@
 "use client";
 import GorillaHost from "./GorillaHost";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import type { AICommentary } from "@/types/election";
 
 interface LiveStreamPanelProps {
   commentary: AICommentary[];
 }
 
+const TILE_DATA = Array.from({ length: 50 }, (_, i) => ({
+  isBlue: i % 3 !== 0,
+  opacity: 0.3 + (((i * 7 + 13) % 10) / 10) * 0.7,
+}));
+
 export default function LiveStreamPanel({ commentary }: LiveStreamPanelProps) {
   const [activeItem, setActiveItem] = useState(0);
   const [speaking, setSpeaking] = useState(true);
+  const mapTiles = useMemo(() => TILE_DATA, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -31,11 +37,11 @@ export default function LiveStreamPanel({ commentary }: LiveStreamPanelProps) {
       {/* Election map placeholder */}
       <div className="absolute inset-0 flex items-center justify-center opacity-10">
         <div className="grid grid-cols-10 gap-1 p-8 w-full h-full">
-          {Array.from({ length: 50 }).map((_, i) => (
+          {mapTiles.map((tile, i) => (
             <div
               key={i}
-              className={`rounded-sm ${Math.random() > 0.5 ? "bg-blue-600" : "bg-red-600"}`}
-              style={{ opacity: 0.3 + Math.random() * 0.7 }}
+              className={`rounded-sm ${tile.isBlue ? "bg-blue-600" : "bg-red-600"}`}
+              style={{ opacity: tile.opacity }}
             />
           ))}
         </div>

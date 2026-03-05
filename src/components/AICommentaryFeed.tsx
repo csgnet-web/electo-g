@@ -27,9 +27,12 @@ export default function AICommentaryFeed({ items }: AICommentaryFeedProps) {
   const [speaking, setSpeaking] = useState(false);
 
   useEffect(() => {
-    setSpeaking(true);
-    const timeout = setTimeout(() => setSpeaking(false), 3000);
-    return () => clearTimeout(timeout);
+    const startTimeout = setTimeout(() => setSpeaking(true), 0);
+    const stopTimeout = setTimeout(() => setSpeaking(false), 3000);
+    return () => {
+      clearTimeout(startTimeout);
+      clearTimeout(stopTimeout);
+    };
   }, [activeIndex]);
 
   useEffect(() => {

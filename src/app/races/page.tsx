@@ -1,3 +1,4 @@
+import Link from "next/link";
 import RaceCard from "@/components/RaceCard";
 import { HOUSE_RACES, SENATE_RACES } from "@/lib/mockData";
 
@@ -19,7 +20,7 @@ export default function AllRacesPage() {
       <section>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-black text-white">Senate Races</h2>
-          <a href="/senate" className="text-green-400 text-sm hover:text-green-300">Senate tracker →</a>
+          <Link href="/senate" className="text-green-400 text-sm hover:text-green-300">Senate tracker →</Link>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {SENATE_RACES.map((r) => (
