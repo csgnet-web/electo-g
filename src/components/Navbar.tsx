@@ -10,6 +10,7 @@ const NAV_LINKS = [
   { href: "/senate", label: "Senate" },
   { href: "/races", label: "All Races" },
   { href: "/map", label: "Map" },
+  { href: "/dashboard", label: "Dashboard" },
 ];
 
 export default function Navbar() {

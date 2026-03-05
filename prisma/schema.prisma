@@ -1,0 +1,186 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Race Object (Section 4) ────────────────────────────────────────────────
+
+enum RaceType {
+  SENATE
+  HOUSE
+  GOVERNOR
+  LT_GOVERNOR
+  AG
+  STATE_SEN
+  STATE_HOU
+  BALLOT_INIT
+  LOCAL
+}
+
+enum Party {
+  DEMOCRAT
+  REPUBLICAN
+  INDEPENDENT
+  OTHER
+}
+
+enum PollingTrend {
+  STABLE
+  SHIFTING_D
+  SHIFTING_R
+  VOLATILE
+  INSUFFICIENT_DATA
+}
+
+enum CoverageFrequency {
+  DAILY
+  TWICE_WEEKLY
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+}
+
+model Race {
+  id                      String             @id @default(uuid()) @db.Uuid
+  raceId                  String             @unique @map("race_id")
+  cycleYear               Int                @map("cycle_year")
+  raceType                RaceType           @map("race_type")
+  state                   String             @db.VarChar(2)
+  district                String             @default("")
+  partisanLean            Float              @map("partisan_lean")
+  historicalTurnout       Float              @map("historical_turnout")
+  incumbentParty          Party              @map("incumbent_party")
+  incumbentName           String             @map("incumbent_name")
+  isOpenSeat              Boolean            @map("is_open_seat")
+  demPrimaryDate          DateTime           @map("dem_primary_date")
+  repPrimaryDate          DateTime           @map("rep_primary_date")
+  generalElectionDate     DateTime           @map("general_election_date")
+  demPrimaryWinner        String             @default("") @map("dem_primary_winner")
+  repPrimaryWinner        String             @default("") @map("rep_primary_winner")
+  censusDistrictData      Json               @default("{}") @map("census_district_data")
+
+  // ── Candidates (JSONB array — Section 4.2)
+  candidates              Json               @default("[]")
+
+  // ── Financial fields (Section 4.3)
+  fundraisingLastUpdated  DateTime?          @map("fundraising_last_updated")
+  fundraisingByCandidate  Json               @default("[]") @map("fundraising_by_candidate")
+  outsideSpending         Json               @default("{}") @map("outside_spending")
+  smallDollarPct          Float              @default(0) @map("small_dollar_pct")
+
+  // ── Polling fields (Section 4.4)
+  pollingAverages         Json               @default("[]") @map("polling_averages")
+  pollingTrend            PollingTrend       @default(INSUFFICIENT_DATA) @map("polling_trend")
+  pollingSpread           Float              @default(0) @map("polling_spread")
+  lastPollDate            DateTime?          @map("last_poll_date")
+  pollsRaw                Json               @default("[]") @map("polls_raw")
+
+  // ── Coverage & content fields (Section 4.5)
+  coverageTier            Int                @default(5) @map("coverage_tier")
+  tierScoreRaw            Float              @default(0) @map("tier_score_raw")
+  lastCoveredAt           DateTime?          @map("last_covered_at")
+  coverageFrequencyTarget CoverageFrequency  @default(MONTHLY) @map("coverage_frequency_target")
+  daysSinceCovered        Int                @default(0) @map("days_since_covered")
+  lastScriptSummary       String             @default("") @map("last_script_summary")
+  pendingNewsQueue        Json               @default("[]") @map("pending_news_queue")
+  approvedScripts         Json               @default("[]") @map("approved_scripts")
+
+  // ── Signal fields (Section 4.6)
+  enthusiasmIndex         Float              @default(0) @map("enthusiasm_index")
+  enthusiasmIndexUpdated  DateTime?          @map("enthusiasm_index_updated")
+  bogsSignals             Json               @default("[]") @map("bogs_signals")
+  earnedMediaVelocity     Float              @default(0) @map("earned_media_velocity")
+  socialSentimentScore    Float              @default(0) @map("social_sentiment_score")
+  canvassingActivityIndex Float              @default(0) @map("canvassing_activity_index")
+
+  // ── Endorsement fields (Section 4.7)
+  endorsements            Json               @default("[]")
+
+  // ── Timestamps
+  createdAt               DateTime           @default(now()) @map("created_at")
+  updatedAt               DateTime           @updatedAt @map("updated_at")
+
+  // ── Relations
+  productionQueueItems    ProductionQueue[]
+  bogsSubmissions         BogsSubmission[]
+
+  @@map("races")
+}
+
+// ─── Production Queue (Section 7.1) ─────────────────────────────────────────
+
+enum Urgency {
+  BREAKING
+  DAILY_BATCH
+  WEEKLY_BATCH
+}
+
+enum SegmentType {
+  WHIP_AROUND_BRIEF
+  DEEP_DIVE
+  MACRO_MENTION
+  BREAKING_UPDATE
+  MACRO_ANALYSIS
+}
+
+enum QueueStatus {
+  PENDING
+  APPROVED
+  EDITED_APPROVED
+  REJECTED
+  RECORDED
+  AIRED
+}
+
+model ProductionQueue {
+  id                  String       @id @default(uuid()) @db.Uuid
+  raceId              String       @map("race_id")
+  urgency             Urgency
+  segmentType         SegmentType  @map("segment_type")
+  scriptDraft         String       @map("script_draft") @db.Text
+  scriptVersion       Int          @default(1) @map("script_version")
+  estimatedDurationSec Int         @map("estimated_duration_sec")
+  triggeringEvents    Json         @default("[]") @map("triggering_events")
+  status              QueueStatus  @default(PENDING)
+  operatorNotes       String       @default("") @map("operator_notes")
+  approvedAt          DateTime?    @map("approved_at")
+  recordedAudioUrl    String       @default("") @map("recorded_audio_url")
+  airedAt             DateTime?    @map("aired_at")
+  createdAt           DateTime     @default(now()) @map("created_at")
+
+  race                Race         @relation(fields: [raceId], references: [raceId])
+
+  @@map("production_queue")
+}
+
+// ─── Boots-on-Ground Submissions (Section 9) ────────────────────────────────
+
+enum BogsSubmissionType {
+  SIGN_PHOTO
+  CANVASSING_LOG
+  LOCAL_TIP
+  EVENT_REPORT
+  OTHER
+}
+
+model BogsSubmission {
+  id              String             @id @default(uuid()) @db.Uuid
+  raceId          String             @map("race_id")
+  submissionType  BogsSubmissionType @map("submission_type")
+  content         String             @db.Text
+  mediaUrl        String?            @map("media_url")
+  location        Json?
+  submitterWallet String?            @map("submitter_wallet")
+  rewardAmount    Float?             @map("reward_amount")
+  rewardTxHash    String?            @map("reward_tx_hash")
+  verified        Boolean            @default(false)
+  createdAt       DateTime           @default(now()) @map("created_at")
+
+  race            Race               @relation(fields: [raceId], references: [raceId])
+
+  @@map("bogs_submissions")
+}

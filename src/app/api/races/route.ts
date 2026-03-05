@@ -1,37 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
-import { HOUSE_RACES, SENATE_RACES, NATIONAL_OVERVIEW } from "@/lib/mockData";
+import { prisma } from "@/db/client";
+import { recalculateRaceTier } from "@/stream/tierScorer";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * GET /api/races — List all races with optional filters.
+ * Query params: ?state=PA&type=SENATE&tier=1
+ */
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const chamber = searchParams.get("chamber");
   const state = searchParams.get("state");
-  const status = searchParams.get("status");
+  const type = searchParams.get("type");
+  const tier = searchParams.get("tier");
 
-  let houseRaces = HOUSE_RACES;
-  let senateRaces = SENATE_RACES;
+  const where: Record<string, unknown> = {};
+  if (state) where.state = state.toUpperCase();
+  if (type) where.raceType = type.toUpperCase();
+  if (tier) where.coverageTier = Number(tier);
 
-  if (state) {
-    houseRaces = houseRaces.filter((r) => r.stateAbbr.toLowerCase() === state.toLowerCase());
-    senateRaces = senateRaces.filter((r) => r.stateAbbr.toLowerCase() === state.toLowerCase());
-  }
-
-  if (status) {
-    houseRaces = houseRaces.filter((r) => r.raceStatus === status);
-    senateRaces = senateRaces.filter((r) => r.raceStatus === status);
-  }
-
-  const payload =
-    chamber === "house"
-      ? { races: houseRaces, overview: NATIONAL_OVERVIEW }
-      : chamber === "senate"
-      ? { races: senateRaces, overview: NATIONAL_OVERVIEW }
-      : { houseRaces, senateRaces, overview: NATIONAL_OVERVIEW };
-
-  return NextResponse.json(payload, {
-    headers: {
-      "Cache-Control": "no-store, max-age=0",
-    },
+  const races = await prisma.race.findMany({
+    where,
+    orderBy: [{ coverageTier: "asc" }, { tierScoreRaw: "desc" }],
   });
+
+  return NextResponse.json({ races, count: races.length });
+}
+
+/**
+ * POST /api/races — Create a new Race Object.
+ */
+export async function POST(req: NextRequest) {
+  const body = await req.json();
+
+  const race = await prisma.race.create({ data: body });
+
+  return NextResponse.json(race, { status: 201 });
 }
